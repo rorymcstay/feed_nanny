@@ -85,11 +85,13 @@ class ContainerManager:
         """
         map = self.hz.get_map(self.container_map)
         try:
-            browser: Browser = self.client.containers.run(self.client.images.get(browser_params['image']),
+            browser: Browser = self.client.containers.run(
+                                                 image=self.client.images.get(browser_params['image']),
                                                  detach=True,
                                                  name='worker-{}'.format(port),
                                                  ports={'4444/tcp': port},
-                                                 restart_policy={"Name": 'always'}, network=os.getenv("NETWORK", "car_default"))
+                                                 restart_policy={"Name": 'always'},
+                                                 network=os.getenv("NETWORK", "feed_default"))
             self.wait_for_log(browser, BrowserConstants().CONTAINER_SUCCESS)
         except APIError as e:
             if e.status_code == 409:

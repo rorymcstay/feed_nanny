@@ -49,7 +49,7 @@ class ParameterController(FlaskView):
         return Response(json.dumps(params), mimetype="application/json")
 
     def getFeeds(self):
-        feeds = [feed.get('name') for feed in self.parameterManager.feed_params['feed'].find({})]
+        feeds = [feed.get('name') for feed in self.parameterManager.feed_params['leader'].find({})]
         res = Response(json.dumps(feeds), mimetype='application/json')
         return res
 
