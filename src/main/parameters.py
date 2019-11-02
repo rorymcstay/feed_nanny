@@ -19,6 +19,9 @@ class ParameterManager:
     feed_params: Database = client[os.getenv("PARAMETER_DATABASE", "params")]
     feed_stats: Database = client[os.getenv("PARAMETER_STATS", "param_stats")]
 
+    def getFeeds(self):
+        return [feed.get("name") for feed in  self.feed_params["leader"].find({})]
+
     def getParameter(self, collection, name):
         param = self.feed_params[collection].find_one(filter={"name": name})
         return param

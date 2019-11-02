@@ -40,6 +40,11 @@ class ContainerController(FlaskView):
 class ParameterController(FlaskView):
     parameterManager = ParameterManager()
 
+    @route("/getFeeds")
+    def getFeeds(self):
+        data = self.parameterManager.getFeeds()
+        return Response(json.dumps(data), mimetype="application/json")
+
     @route("/getParameter/<string:collection>/<string:name>")
     def getParameter(self, collection, name):
         params: dict = self.parameterManager.getParameter(name=name, collection=collection)
