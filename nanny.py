@@ -2,7 +2,7 @@ import logging
 import os
 
 from flask import Flask
-
+from feed.service import Service
 from src.main.mapping import MappingManager
 from src.main.rest import ContainerController, ParameterController
 from flask_cors import CORS
@@ -13,9 +13,12 @@ logging.FileHandler('/var/tmp/myapp.log')
 
 
 app = Flask(__name__)
+
+
 ContainerController.register(app)
 ParameterController.register(app)
 MappingManager.register(app)
+Service.register(app)
 CORS(app)
 
 if __name__ == '__main__':

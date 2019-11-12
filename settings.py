@@ -4,6 +4,7 @@ hazelcast_params = {
     "host": os.getenv("HAZELCAST_HOST", "localhost"),
     "port": os.getenv("HAZELCAST_PORT", 5701)
 }
+
 browser_params = {
     "image": os.getenv('BROWSER_IMAGE', 'selenium/standalone-chrome:3.141.59'),
     "base_port": int(os.getenv('BROWSER_BASE_PORT', 4444)),
