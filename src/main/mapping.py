@@ -3,7 +3,7 @@ import json
 from flask import request, Response
 from flask_classy import FlaskView, route
 import pymongo
-from settings import mongo_params
+from feed.settings import mongo_params
 
 
 class MappingManager(FlaskView):

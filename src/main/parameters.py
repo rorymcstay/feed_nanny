@@ -7,7 +7,7 @@ import checksumdir
 import pymongo
 from pymongo.database import Database
 
-from settings import mongo_params
+from feed.settings import mongo_params
 
 
 class ParameterManager:

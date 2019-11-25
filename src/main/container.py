@@ -1,79 +1,46 @@
 import logging
 import os
-from typing import List
-
-from time import time
+from typing import List, Union
 
 import docker
 from docker.errors import APIError
 from docker.models.containers import Container as Browser
-from hazelcast import ClientConfig, HazelcastClient
-from hazelcast.proxy.map import Map
-from hazelcast.serialization.api import Portable
-from hazelcast.serialization.portable.writer import ClassDefinitionWriter
-from hazelcast.serialization.predicate import sql
-
-from settings import browser_params, hazelcast_params, BrowserConstants
+from feed.settings import browser_params, BrowserConstants
+from time import time
 
 
-class Container(Portable):
-    FACTORY_ID = 666
-    CLASS_ID = 2
+class Container:
+    name = None
 
-    def __init__(self, port=None, active="yes", status=None):
-        self.port = port
-        self.active = active
-        self.status = status
-
-    def write_portable(self, writer: ClassDefinitionWriter):
-        """
-
-        :type writer: ClassDefinitionWriter
-        """
-        writer.write_int("port", self.port)
-        writer.write_utf("active", self.active)
-        writer.write_utf("status", self.status)
-
-    def read_portable(self, reader):
-        self.active = reader.read_utf("active")
-        self.status = reader.read_utf("status")
-        self.port = reader.read_int("port")
-
-    def get_factory_id(self):
-        return self.FACTORY_ID
-
-    def get_class_id(self):
-        return self.CLASS_ID
+    def __repr__(self):
+        return "Container {} is {} and {}".format(self.port,
+                                                  "active" if self.active else "not active", self.status)
 
     def __str__(self):
-        return "Container {} is {} and {}".format(self.port,
-                                           "active" if self.active.upper() == "yes".upper() else "not active", self.status)
+        return str(self.port)
 
     def __eq__(self, other):
         return type(self) == type(other) and self.port == other.name
 
+    def __init__(self, port=None, active=True, status=None):
+        self.port = port
+        self.active = active
+        self.status = status
+
 
 class ContainerManager:
-    container_map = os.getenv("CONTAINER_MAP_NAME", "browser_containers")
-    mainPorts = []
-    workerPorts = [int(browser_params["base_port"]) + i for i in range(browser_params["max"])]
     client = docker.client.from_env()
-    config = ClientConfig()
-    config.serialization_config.portable_factories[Container.FACTORY_ID] = {Container.CLASS_ID: Container}
-    config.network_config.addresses.append("{host}:{port}".format(**hazelcast_params))
-    hz = HazelcastClient(config)
-
-    for port in workerPorts:
-        hz.get_map(container_map).put(key=port, value=Container(port=port, active='no', status="not started")).result()
+    workerPorts = {int(browser_params.get("base_port", 4444)) + port: Container(
+        port=int(browser_params.get("base_port", 4444)) + port, active=False, status="not started") for port in
+                   range(browser_params.get("max", 10))}
 
     def resetContainers(self):
-        map = self.hz.get_map(self.container_map)
         for port in self.workerPorts:
             try:
                 self.client.containers.get("worker-{}".format(port)).kill()
             except APIError as e:
                 logging.info("couldn't kill worker-{} {} - {}".format(port, e.explanation, e.status_code))
-            map.put(key=port, value=Container(port=port, active='no', status='reset')).result()
+            self.workerPorts.update({port: Container(port=port, active=False, status='reset')})
         status = self.getContainerStatus()
         return status
 
@@ -83,24 +50,27 @@ class ContainerManager:
         the feed
         :return: string of the main port
         """
-        map = self.hz.get_map(self.container_map)
         try:
-            browser: Browser = self.client.containers.run(
-                                                 image=self.client.images.get(browser_params['image']),
-                                                 detach=True,
-                                                 name='worker-{}'.format(port),
-                                                 ports={'4444/tcp': port},
-                                                 restart_policy={"Name": 'always'},
-                                                 network=os.getenv("NETWORK", "feed_default"))
+            browser: Union[Browser, bool] = self.client.containers.run(
+                image=self.client.images.get(browser_params['image']),
+                detach=True,
+                name='worker-{}'.format(port),
+                ports={'4444/tcp': port},
+                restart_policy={"Name": 'always'},
+                network=os.getenv("NETWORK", "feed_default"))
             self.wait_for_log(browser, BrowserConstants().CONTAINER_SUCCESS)
+            status = browser.status + ' new'
         except APIError as e:
             if e.status_code == 409:
                 browser = self.client.containers.get('worker-{port}'.format(port=port))
                 browser.restart()
                 self.wait_for_log(browser, BrowserConstants().CONTAINER_SUCCESS)
+                status = browser.status + ' restarted'
             else:
-                raise e
-        map.replace(key=port, value=Container(port, active="yes", status=browser.status))
+                browser = False
+                status = "error"
+
+        self.workerPorts.update(key=port, value=Container(port, active=True, status=status))
         return str(port)
 
     def getContainer(self):
@@ -110,39 +80,39 @@ class ContainerManager:
         :return:
         """
 
-        workerPorts = self.hz.get_map(self.container_map)
-        unused: List[Container] = workerPorts.values(sql("active = 'no'")).result()
+        unused: List[Container] = list(filter(lambda port: self.workerPorts[port].active, self.workerPorts))
+
         if len(unused) == 0:
             return "max containers reached"
         else:
-            port = unused[0].port
+            port = self.workerPorts[unused[0]].port
             try:
                 browser: Browser = self.client.containers.get('worker-{port}'.format(port=port))
-                workerPorts.replace(key=port, value=Container(port=port, active="yes", status=browser.status)).result()
+                self.workerPorts[unused[0]].update(key=port, value=Container(port=port, active=True,
+                                                                             status=browser.status)).result()
                 browser.restart()
             except APIError as e:
                 if e.status_code == 404:
                     browser = self.client.containers.run(self.client.images.get(browser_params['image']),
                                                          detach=True,
                                                          name='worker-{}'.format(port),
-                                                         ports={'4444/tcp': port}, network=os.getenv("NETWORK", "car_default"))
-                    workerPorts.replace(key=port,
-                                        value=Container(port=port, active="yes", status=browser.status)).result()
+                                                         ports={'4444/tcp': port},
+                                                         network=os.getenv("NETWORK", "car_default"))
+                    self.workerPorts[unused[0]].update({port: Container(port, active=False, status=browser.status)})
                 else:
                     return str(port)
             logging.info(msg='started browser named worker-{port}'.format(port=port))
+            self.workerPorts[unused[0]].name = 'worker-{}'.format(port)
             self.wait_for_log(browser, BrowserConstants().CONTAINER_SUCCESS)
             return str(port)
 
     def getContainerStatus(self):
-        map: Map = self.hz.get_map(self.container_map)
-        items = map.get_all(keys=[port for port in self.workerPorts]).result()
-        return [str(items[item]) for item in items]
+
+        return [str(self.workerPorts[item]) for item in self.workerPorts]
 
     def freeContainer(self, port):
-        workerPorts = self.hz.get_map(self.container_map)
-        item = Container(port=port, active="no")
-        workerPorts.replace(key=port, value=item)
+        item = Container(port=port, active=False)
+        self.workerPorts.update({port: item})
         try:
             browser: Browser = self.client.containers.get('worker-{port}'.format(port=port))
             browser.kill()
@@ -154,7 +124,6 @@ class ContainerManager:
         return "ok"
 
     def cleanUpContainer(self, port):
-        workerPorts = self.hz.get_map(self.container_map)
         try:
             res = self.client.containers.get("worker-{}".format(port))
             res.kill()
@@ -163,7 +132,7 @@ class ContainerManager:
         except APIError as e:
             if e.status_code == 404:
                 logging.info("container not found, moving on")
-        workerPorts.put(key=port, value=Container(port, "no"))
+        self.workerPorts.update({port: Container(port, False)})
         return "ok"
 
     def wait_for_log(self, hub, success_criteria):
