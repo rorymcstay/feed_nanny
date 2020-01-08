@@ -7,10 +7,8 @@ from src.main.mapping import MappingManager
 from src.main.rest import ContainerController, ParameterController
 from flask_cors import CORS
 
-logging.basicConfig(level=os.environ.get("LOGLEVEL", "INFO"))
+logging.basicConfig(level=os.environ.get("LOGLEVEL", "DEBUG"))
 logging.getLogger("urllib3").setLevel("INFO")
-logging.FileHandler('/var/tmp/myapp.log')
-
 
 app = Flask(__name__)
 

@@ -80,16 +80,17 @@ class ContainerManager:
         :return:
         """
 
-        unused: List[Container] = list(filter(lambda port: self.workerPorts[port].active, self.workerPorts))
+        unused: List[Container] = list(filter(lambda port: not self.workerPorts[port].active, self.workerPorts))
 
         if len(unused) == 0:
+            logging.warning(f'reached {len(self.workerPorts)} containers which is the max allowed amount')
             return "max containers reached"
         else:
             port = self.workerPorts[unused[0]].port
             try:
                 browser: Browser = self.client.containers.get('worker-{port}'.format(port=port))
-                self.workerPorts[unused[0]].update(key=port, value=Container(port=port, active=True,
-                                                                             status=browser.status)).result()
+                self.workerPorts.update({port: Container(port=port, active=True,
+                                                                             status=browser.status)})
                 browser.restart()
             except APIError as e:
                 if e.status_code == 404:
@@ -98,7 +99,7 @@ class ContainerManager:
                                                          name='worker-{}'.format(port),
                                                          ports={'4444/tcp': port},
                                                          network=os.getenv("NETWORK", "car_default"))
-                    self.workerPorts[unused[0]].update({port: Container(port, active=False, status=browser.status)})
+                    self.workerPorts.update({port: Container(port, active=True, status=browser.status)})
                 else:
                     return str(port)
             logging.info(msg='started browser named worker-{port}'.format(port=port))
@@ -107,7 +108,6 @@ class ContainerManager:
             return str(port)
 
     def getContainerStatus(self):
-
         return [str(self.workerPorts[item]) for item in self.workerPorts]
 
     def freeContainer(self, port):
@@ -150,6 +150,6 @@ class ContainerManager:
                 if success_criteria in line:
                     logging.debug(line)
                     return
-
+        logging.warning(f'took unexpectedly long for container to respond. last log line was: {line}')
         # TODO handle RemoteDisconnected
         # TODO check for running containers before creation/worker to store running containers
