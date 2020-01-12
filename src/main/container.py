@@ -5,8 +5,9 @@ from typing import List, Union
 import docker
 from docker.errors import APIError
 from docker.models.containers import Container as Browser
+from docker.models.images import Image
 from feed.settings import browser_params, BrowserConstants
-from time import time
+from time import time, sleep
 
 
 class Container:
@@ -39,7 +40,7 @@ class ContainerManager:
             try:
                 self.client.containers.get("worker-{}".format(port)).kill()
             except APIError as e:
-                logging.info("couldn't kill worker-{} {} - {}".format(port, e.explanation, e.status_code))
+                logging.info(f'couldn\'t kill worker-{port} {e.explanation} - {e.status_code}')
             self.workerPorts.update({port: Container(port=port, active=False, status='reset')})
         status = self.getContainerStatus()
         return status
@@ -60,17 +61,22 @@ class ContainerManager:
                 network=os.getenv("NETWORK", "feed_default"))
             self.wait_for_log(browser, BrowserConstants().CONTAINER_SUCCESS)
             status = browser.status + ' new'
+            logging.info(
+                f'created worker-{port} browser container from image {browser.image.id}')
         except APIError as e:
             if e.status_code == 409:
                 browser = self.client.containers.get('worker-{port}'.format(port=port))
-                browser.restart()
+                # browser.restart()
+
+                logging.info(
+                    f'started worker-{port} browser container from image {browser.image.id}')
                 self.wait_for_log(browser, BrowserConstants().CONTAINER_SUCCESS)
                 status = browser.status + ' restarted'
             else:
                 browser = False
                 status = "error"
 
-        self.workerPorts.update(key=port, value=Container(port, active=True, status=status))
+        self.workerPorts.update({port: Container(port, active=True, status=status)})
         return str(port)
 
     def getContainer(self):
@@ -91,7 +97,11 @@ class ContainerManager:
                 browser: Browser = self.client.containers.get('worker-{port}'.format(port=port))
                 self.workerPorts.update({port: Container(port=port, active=True,
                                                                              status=browser.status)})
-                browser.restart()
+                #'browser.restart()
+                #while browser.status.lower == 'restarting':
+                #    sleep(1)
+                logging.info(
+                    f'starting worker-{port} browser container from image {browser.image.id}')
             except APIError as e:
                 if e.status_code == 404:
                     browser = self.client.containers.run(self.client.images.get(browser_params['image']),
@@ -99,10 +109,11 @@ class ContainerManager:
                                                          name='worker-{}'.format(port),
                                                          ports={'4444/tcp': port},
                                                          network=os.getenv("NETWORK", "car_default"))
+                    logging.info(
+                        f'created worker-{port} browser container from image {browser.image.id}')
                     self.workerPorts.update({port: Container(port, active=True, status=browser.status)})
                 else:
                     return str(port)
-            logging.info(msg='started browser named worker-{port}'.format(port=port))
             self.workerPorts[unused[0]].name = 'worker-{}'.format(port)
             self.wait_for_log(browser, BrowserConstants().CONTAINER_SUCCESS)
             return str(port)
@@ -115,11 +126,11 @@ class ContainerManager:
         self.workerPorts.update({port: item})
         try:
             browser: Browser = self.client.containers.get('worker-{port}'.format(port=port))
-            browser.kill()
-            browser.remove()
+            # browser.kill()
+            # browser.remove()
             logging.info("killed container {}".format(browser.name))
         except APIError as e:
-            logging.info("couldn't kill container {} - {}".format(e.explanation, e.status_code))
+            logging.warning("couldn't kill container {} - {}".format(e.explanation, e.status_code))
         # TODO handle restarting container here - test that you can use a container after running for some time
         return "ok"
 
