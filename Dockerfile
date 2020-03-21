@@ -7,6 +7,7 @@ WORKDIR /home
 ADD requirements.txt ./requirements.txt
 RUN python -m pip install pip
 
+RUN python -m pip install --upgrade pip
 # Installing packages
 RUN pip install -r ./requirements.txt
 
