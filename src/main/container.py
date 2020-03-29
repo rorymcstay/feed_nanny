@@ -1,13 +1,16 @@
-import logging
+from feed.logger import getLogger
 import os
 from typing import List, Union
-
+from datetime import datetime, timedelta
 import docker
 from docker.errors import APIError
 from docker.models.containers import Container as Browser
 from docker.models.images import Image
 from feed.settings import browser_params, BrowserConstants
 from time import time, sleep
+
+
+logging = getLogger(__name__)
 
 
 class Container:
@@ -73,6 +76,7 @@ class ContainerManager:
                 self.wait_for_log(browser, BrowserConstants().CONTAINER_SUCCESS)
                 status = browser.status + ' restarted'
             else:
+                logging.error(f'couldnt start main container: port={port}, explanation={e.explanation}, status_code={e.status_code}')
                 browser = False
                 status = "error"
 
@@ -134,6 +138,11 @@ class ContainerManager:
         # TODO handle restarting container here - test that you can use a container after running for some time
         return "ok"
 
+    def freeAllContainers():
+        for port in self.workerPorts:
+            self.freeContainer(port)
+        return 'ok'
+
     def cleanUpContainer(self, port):
         try:
             res = self.client.containers.get("worker-{}".format(port))
@@ -145,7 +154,10 @@ class ContainerManager:
                 logging.info("container not found, moving on")
         self.workerPorts.update({port: Container(port, False)})
         return "ok"
-
+    def cleanUpAllContainers():
+        for port in self.workerPorts:
+            self.cleanUpContainer(port)
+        return 'ok'
     def wait_for_log(self, hub, success_criteria):
         """
         Wait until the partial_url returns in the logs
@@ -157,7 +169,7 @@ class ContainerManager:
         timeMax = time() + BrowserConstants().CONTAINER_TIMEOUT
         line = 'error'
         while line not in BrowserConstants().CONTAINER_SUCCESS or time() < timeMax:
-            for line in hub.logs().decode().split('\n'):
+            for line in hub.logs(since=datetime.now()-timedelta(seconds=10)).decode().split('\n'):
                 if success_criteria in line:
                     logging.debug(line)
                     return
