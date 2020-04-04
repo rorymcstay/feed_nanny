@@ -23,6 +23,10 @@ class ContainerController(FlaskView):
     def freeContainer(self, port):
         return self.containerManager.freeContainer(port)
 
+    @route("freeContainers", methods=["GET"])
+    def freeAllContainers(self):
+        return self.containerManager.freeAllContainers()
+
     @route("resetCache", methods=['GET'])
     def resetCache(self):
         return json.dumps(self.containerManager.resetContainers())

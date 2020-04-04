@@ -138,7 +138,7 @@ class ContainerManager:
         # TODO handle restarting container here - test that you can use a container after running for some time
         return "ok"
 
-    def freeAllContainers():
+    def freeAllContainers(self):
         for port in self.workerPorts:
             self.freeContainer(port)
         return 'ok'
