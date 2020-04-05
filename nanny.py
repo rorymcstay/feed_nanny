@@ -21,7 +21,6 @@ logging.info("database: {}".format(json.dumps(database_parameters, indent=4, sor
 logging.info("nanny: {}".format(json.dumps(nanny_params, indent=4, sort_keys=True)))
 
 
-ContainerController.register(app)
 ParameterController.register(app)
 MappingManager.register(app)
 Service.register(app)
