@@ -18,4 +18,4 @@ class MappingManager(FlaskView):
             logging.warning(f'mapping for {name} was not found')
             return Response('No mapping found', status=404, mimetype='application/text')
         mapping.pop('_id', None)
-        return Response(json.dumps(mapping), mimetype='application/json')
+        return Response(json.dumps(mapping), mimetype='application/json', status=200)

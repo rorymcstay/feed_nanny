@@ -48,41 +48,6 @@ class ContainerManager:
         status = self.getContainerStatus()
         return status
 
-    def getMainContainer(self, port):
-        """
-        return the main port associated with a running browser container. Intended to be called by
-        the feed
-        :return: string of the main port
-        """
-        try:
-            browser: Union[Browser, bool] = self.client.containers.run(
-                image=self.client.images.get(browser_params['image']),
-                detach=True,
-                name='worker-{}'.format(port),
-                ports={'4444/tcp': port},
-                restart_policy={"Name": 'always'},
-                network=os.getenv("NETWORK", "feed_default"))
-            self.wait_for_log(browser, BrowserConstants().CONTAINER_SUCCESS)
-            status = browser.status + ' new'
-            logging.info(
-                f'created worker-{port} browser container from image {browser.image.id}')
-        except APIError as e:
-            if e.status_code == 409:
-                browser = self.client.containers.get('worker-{port}'.format(port=port))
-                # browser.restart()
-
-                logging.info(
-                    f'started worker-{port} browser container from image {browser.image.id}')
-                self.wait_for_log(browser, BrowserConstants().CONTAINER_SUCCESS)
-                status = browser.status + ' restarted'
-            else:
-                logging.error(f'couldnt start main container: port={port}, explanation={e.explanation}, status_code={e.status_code}')
-                browser = False
-                status = "error"
-
-        self.workerPorts.update({port: Container(port, active=True, status=status)})
-        return str(port)
-
     def getContainer(self):
         """
         return a port associated with a running browser container which is not the mainPort
