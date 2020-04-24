@@ -7,6 +7,7 @@ from flask import Flask
 from feed.service import Service
 from src.main.mapping import MappingManager
 from src.main.rest import ContainerController, ParameterController
+from src.main.actionsmanager import ActionsManager
 from flask_cors import CORS
 
 from pymongo import MongoClient
@@ -40,6 +41,7 @@ while not probeMongo():
 ParameterController.register(app)
 MappingManager.register(app)
 Service.register(app)
+ActionsManager.register(app)
 CORS(app)
 
 if __name__ == '__main__':

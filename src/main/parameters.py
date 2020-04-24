@@ -10,6 +10,7 @@ from pymongo.database import Database
 from feed.settings import mongo_params
 
 
+
 class ParameterManager:
     """
     The ParameterManager controls the parameters. It delivers them to the client.
