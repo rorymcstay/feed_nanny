@@ -9,7 +9,10 @@ from pymongo.collection import Collection
 from pymongo.database import Database
 
 from feed.settings import mongo_params
-from feed.actiontypes import ActionTypes
+from feed.actiontypes import ActionTypes, ReturnTypes
+from feed.logger import getLogger
+
+logging = getLogger(__name__)
 
 baseActionParams = {
     'name': 'NewAction',
@@ -21,7 +24,7 @@ baseActionParams = {
             'css': '.gsfi',
             'xpath': '//*[contains(concat( " ", @class, " " ), concat( " ", "gsfi", " " ))]',
             'text': '',
-            'searchInput': 'Example Search input'
+            'inputString': 'Example Search input'
         },
         {
             'actionType': 'ClickAction',
@@ -54,25 +57,44 @@ class ActionsManager(FlaskView):
     def getActionTypes(self, name):
         return Response(json.dumps(ActionTypes), mimetype='application/json')
 
+    def getPossibleValues(self):
+        possible_values = {
+            'actionType': ActionTypes,
+            'returnType': ReturnTypes,
+            'isRepeating': [True, False],
+            'attr': ['class', 'href', 'src', 'img']
+
+        }
+        return Response(json.dumps(possible_values), mimetype='application/json')
+
     @route('setActionChain/', methods=['PUT'])
     def setActionChain(self):
-        actionChain = request.json()
+        actionChain = request.get_json()
+        logging.info(f'request to set actionChain for {actionChain.get("name")}, have {len(actionChain.get("actions"))} actions')
         if self._verifyAction(actionChain):
-            actionChains.replace_one({'name': actionChain.get('name')}, action, upsert=True)
-            return Reponse('ok', status=200)
+            self.actionChains.replace_one({'name': actionChain.get('name')}, actionChain, upsert=True)
+            return Response('ok', status=200)
         else:
-            return Reponse('action chain was invalid')
+            return Response('action chain was invalid')
 
     @route('deleteActionChain/<string:name>', methods=['DELETE'])
     def deleteActionChain(self, name):
         self.actionChains.delete_one({'name': name})
         return 'ok'
 
+    def queryActionChain(self, name, field):
+        it = self.actionChains.find_one({'name': name}, projection=[field])
+        if it is None:
+            return Response('not_found', status=404)
+        else:
+            it.pop('_id')
+            return Response(json.dumps(it), mimetype='application/json')
+
     def listActionChains(self):
         ret = self.actionChains.find_all({}, project=['name'])
         return Response(json.dumps([name for name in ret]), mimetype='application/json')
 
-    def _verifyAction(actionChain):
+    def _verifyAction(self, actionChain):
         """
         TODO: look into proper json validation libraries
         """

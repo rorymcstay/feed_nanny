@@ -7,4 +7,4 @@ docker
 pymongo
 checksumdir
 kafka-python
-feed_utils==0.2.1
+feed_utils==0.2.5
