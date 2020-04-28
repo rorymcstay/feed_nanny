@@ -41,16 +41,16 @@ class SamplePages(FlaskView):
     def getSamplePage(self, name, position):
         if session.name is None:
             return Response(status=404)
-        if len(session.example_sources) <= position:
-            position = len(session.example_sources)
-        if len (session.example_sources) == 0 or not session.sample_pending and session.example_sources[position] is None:
+        if session.num_examples <= position:
+            position = session.num_examples
+        if session.num_examples == 0 or not session.sample_pending and session.example_sources(position) is None:
             logging.info(f'example source {position} is none and status is not pending {name}')
             return Response("<div>RefreshSources</div>", status=200, mimetype='text/html')
         elif session.sample_pending:
             return Response("<div>Loading</div>", status=200, mimetype='text/html')
         else:
-            logging.info(f'sending sample source to client, name={name}, sample_source_len={len(session.example_sources[position])}')
-            enrichedHtmlFile = HtmlSource(session.example_sources[position])
+            logging.info(f'sending sample source to client, name={name}, sample_source_len={len(session.example_sources(position))}')
+            enrichedHtmlFile = HtmlSource(session.example_sources(position))
             return Response(str(enrichedHtmlFile.soup), status=200, mimetype='text/html')
 
     def requestSamplePages(self, name):
@@ -63,7 +63,7 @@ class SamplePages(FlaskView):
             url = r.get('http://{host}:{port}/actionsmanager/getActionChain/{name}'.format(name=name, **nanny_params)).json()
 
         logging.info(f'requesting {url} to be sample')
-        r.put('http://{host}:{port}/schedulemanager/scheduleActionChain/{name}'.format(name=name, **ui_server_params), json={
+        r.put('http://{host}:{port}/schedulemanager/scheduleActionChain/sample-queue/{name}'.format(name=name, **ui_server_params), json={
             "url": url,
             "actionName": name,
             "trigger": 'date',
@@ -88,7 +88,7 @@ class SamplePages(FlaskView):
         actions = r.get('http://{host}:{port}/actionsmanager/queryActionChain/{chain}/actions'.format(chain=name,**nanny_params)).json().get('actions', [])
         status =[]
         for i in range(len(actions)):
-            if i < len(session.example_sources):
+            if i < session.num_examples:
                 status.append({'ready': True})
             else:
                 status.append({'ready': False})

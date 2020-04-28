@@ -3,7 +3,7 @@ import logging
 import os
 from queue import Queue
 from feed.settings import database_parameters, nanny_params, mongo_params
-from flask import Flask, g
+from flask import Flask
 from feed.service import Service
 from feed.chainsessions import ChainSession
 from src.main.mapping import MappingManager
@@ -19,6 +19,13 @@ from datetime import timedelta
 logging.basicConfig(level=os.environ.get("LOGLEVEL", "DEBUG"))
 logging.getLogger("urllib3").setLevel("INFO")
 
+def probeMongo(client):
+    try:
+        cl = client.server_info()
+    except ServerSelectionTimeoutError as ex:
+        logging.info(f'trying to connect to mongo with {mongo_params}')
+        return False
+    return True
 
 def init_app():
 
@@ -27,10 +34,12 @@ def init_app():
     app.permanent_session_lifetime = timedelta(days=31)
     app.secret_key = os.getenv('SECRET_KEY', 'this is supposed to be secret')
 
-    with app.app_context():
-        if 'toRun' not in g:
-            g.toRun = Queue()
-    app.session_interface = ChainSession(Feed)
+    sessionManager = ChainSession(Feed)
+
+    while not probeMongo(sessionManager._client):
+        sleep(10)
+
+    app.session_interface = sessionManager
 
     return app
 
@@ -44,21 +53,6 @@ logging.info("####### Environment #######")
 logging.info("database: {}".format(json.dumps(database_parameters, indent=4, sort_keys=True)))
 logging.info("nanny: {}".format(json.dumps(nanny_params, indent=4, sort_keys=True)))
 
-#probing mongo
-client = MongoClient(**mongo_params)
-
-def probeMongo():
-    try:
-        cl = client.server_info()
-    except ServerSelectionTimeoutError as ex:
-        logging.info(f'trying to connect to mongo with {mongo_params}')
-        return False
-    return True
-
-
-
-while not probeMongo():
-    sleep(10)
 
 
 ParameterController.register(app)

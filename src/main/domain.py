@@ -1,6 +1,6 @@
 from flask.sessions import SessionMixin
 import time
-from flask import session
+from flask import session, g
 import logging
 
 class Feed(dict, SessionMixin):
@@ -14,8 +14,9 @@ class Feed(dict, SessionMixin):
         self.last_page = kwargs.get('lastPage', None)
         self.needs_mapping = kwargs.get('needsMapping', False)
         self.pages_processed = kwargs.get('pagesProcessed', 0)
-        self.example_sources = kwargs.get('exampleSources', [])
+        #self.example_sources = kwargs.get('exampleSources', [])
         self.sample_pending = False
+        self.num_examples = kwargs.get('numExamples', 0)
 
     def run(self):
         self.running = True
@@ -29,11 +30,19 @@ class Feed(dict, SessionMixin):
         self.needs_mapping = True
         self.modified = True
 
+    def example_sources(self, position):
+        # TODO this should be improved further to get that item of the list
+        sample = session['chain_db']['sample_pages'].find_one({'name': session.name, 'position': position})
+        if sample is None:
+            return '<div></div>'
+        else:
+            return sample.get('source', '<div></div>')
+
     def setExampleSource(self, source, position):
+        self.num_examples += 1
         logging.info(f'setting sample source of length={len(source)} for {self.name}')
-        self.sample_pending = False
-        self.example_sources.append(source)
-        self.modified = True
+        session['chain_db']['sample_pages'].replace_one({'name': session.name}, {'position': position ,'name': session.name, 'source': source}, upsert=True)
+        self.modified=True
 
     def markDisabled(self):
         self.isDisabled = True
@@ -63,7 +72,7 @@ class Feed(dict, SessionMixin):
                     samplePending=self.sample_pending,
                     isDisabled=self.isDisabled,
                     lastPage=self.last_page,
-                    exampleSources=self.example_sources,
+                    numExamples=self.num_examples,
                     pagesProcessed=self.pages_processed)
 
     def small_dict(self):
