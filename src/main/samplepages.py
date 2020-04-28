@@ -43,9 +43,9 @@ class SamplePages(FlaskView):
             return Response(status=404)
         if len(session.example_sources) <= position:
             position = len(session.example_sources)
-        if not session.sample_pending and session.example_sources[position] is None:
+        if len (session.example_sources) == 0 or not session.sample_pending and session.example_sources[position] is None:
             logging.info(f'example source {position} is none and status is not pending {name}')
-            return Response("<div>Loading</div>", status=200, mimetype='text/html')
+            return Response("<div>RefreshSources</div>", status=200, mimetype='text/html')
         elif session.sample_pending:
             return Response("<div>Loading</div>", status=200, mimetype='text/html')
         else:
