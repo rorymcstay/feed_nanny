@@ -19,3 +19,13 @@ class MappingManager(FlaskView):
             return Response('No mapping found', status=404, mimetype='application/text')
         mapping.pop('_id', None)
         return Response(json.dumps(mapping), mimetype='application/json', status=200)
+
+    def setNeedsMapping(self, name):
+        if session.name is None:
+            return Response(f'{name} not found', status=200)
+        session.setNeedsMapping()
+        return Response('ok')
+
+    def _hasMapping(self, feedName):
+        mapping = self.mappings['values'].find_one({'name': name})
+

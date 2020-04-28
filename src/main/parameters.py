@@ -38,3 +38,4 @@ class ParameterManager:
 
         self.feed_stats[component].insert_one(event)
         return "ok"
+
