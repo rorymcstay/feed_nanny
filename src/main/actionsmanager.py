@@ -9,7 +9,7 @@ from pymongo.collection import Collection
 from pymongo.database import Database
 
 from feed.settings import mongo_params
-from feed.actiontypes import ActionTypes, ReturnTypes
+from feed.actiontypes import ActionTypes, ReturnTypes, get_mandatory_params
 from feed.logger import getLogger
 
 logging = getLogger(__name__)
@@ -58,6 +58,10 @@ class ActionsManager(FlaskView):
 
     def getActionTypes(self, name):
         return Response(json.dumps(ActionTypes), mimetype='application/json')
+
+    def getActionParameters(self, name):
+        params = get_mandatory_params(name)
+        return Response(json.dumps(params), mimetype='application/json')
 
     def getPossibleValues(self):
         possible_values = {
