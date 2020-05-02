@@ -33,8 +33,9 @@ class Feed(dict, SessionMixin):
     def example_sources(self, position):
         # TODO this should be improved further to get that item of the list
         sample = session['chain_db']['sample_pages'].find_one({'name': session.name, 'position': position})
+        self.modified=False
         if sample is None:
-            return '<div></div>'
+            return None
         else:
             return sample.get('source', '<div></div>')
 
@@ -53,6 +54,7 @@ class Feed(dict, SessionMixin):
         self.modified = True
 
     def getLastRan(self):
+        self.modified=False
         return self.last_ran
 
     def stop(self):
@@ -65,6 +67,7 @@ class Feed(dict, SessionMixin):
         self.modified = True
 
     def __dict__(self):
+        self.modified=False
         return dict(name=self.name,
                     lastRan=self.last_ran,
                     running=self.running,
@@ -76,6 +79,7 @@ class Feed(dict, SessionMixin):
                     pagesProcessed=self.pages_processed)
 
     def small_dict(self):
+        self.modified=False
         return dict(name=self.name,
                     lastRan=self.last_ran,
                     running=self.running,
@@ -83,8 +87,8 @@ class Feed(dict, SessionMixin):
                     samplePending=self.sample_pending,
                     isDisabled=self.isDisabled,
                     lastPage=self.last_page,
-                    exampleSources=self.example_sources,
-                    pagesProcessed=len(self.pages_processed))
+                    #exampleSources=self.example_sources,
+                    pagesProcessed=self.pages_processed)
     def __repr__(self):
         return f'name={self.name}, lastRan={self.last_ran}, running={self.running}, disabled={self.isDisabled}'
 

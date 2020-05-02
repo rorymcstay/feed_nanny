@@ -45,6 +45,8 @@ class ActionsManager(FlaskView):
 
     def getActionChains(self):
         chains = self.actionChains.find({}, projection=['name'])
+        if chains is None:
+            chains = [{'name': 'NewAction'}]
         return Response(json.dumps([chain.get('name') for chain in chains]), mimetype='application/json')
 
     def getActionChain(self, name):

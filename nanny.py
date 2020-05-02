@@ -5,7 +5,7 @@ from queue import Queue
 from feed.settings import database_parameters, nanny_params, mongo_params
 from flask import Flask
 from feed.service import Service
-from feed.chainsessions import ChainSession
+from feed.chainsessions import init_app
 from src.main.mapping import MappingManager
 from src.main.samplepages import SamplePages
 from src.main.runningmanager import RunningManager
@@ -19,32 +19,9 @@ from datetime import timedelta
 logging.basicConfig(level=os.environ.get("LOGLEVEL", "DEBUG"))
 logging.getLogger("urllib3").setLevel("INFO")
 
-def probeMongo(client):
-    try:
-        cl = client.server_info()
-    except ServerSelectionTimeoutError as ex:
-        logging.info(f'trying to connect to mongo with {mongo_params}')
-        return False
-    return True
-
-def init_app():
-
-    app = Flask(__name__)
-
-    app.permanent_session_lifetime = timedelta(days=31)
-    app.secret_key = os.getenv('SECRET_KEY', 'this is supposed to be secret')
-
-    sessionManager = ChainSession(Feed)
-
-    while not probeMongo(sessionManager._client):
-        sleep(10)
-
-    app.session_interface = sessionManager
-
-    return app
 
 
-app = init_app()
+app = init_app(Feed)
 
 
 logging.info("####### Environment #######")
