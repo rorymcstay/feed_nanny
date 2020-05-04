@@ -1,11 +1,14 @@
 from flask_classy import FlaskView, route
 import os
 from bs4 import BeautifulSoup
-import logging
 from feed.settings import nanny_params, ui_server_params
 from flask import session, Response, request
 import json
 import requests as r
+
+from feed.logger import getLogger
+
+logging = getLogger(__name__)
 
 class HtmlSource:
     def __init__(self, source):
@@ -43,7 +46,7 @@ class SamplePages(FlaskView):
             return Response(status=404)
         if session.num_examples <= position:
             position = session.num_examples
-        if session.num_examples == 0 or not session.sample_pending and session.example_sources(position) is None:
+        if session.num_examples == 0 or session.example_sources(position) is None:
             logging.info(f'example source {position} is none and status is not pending {name}')
             return Response("<div>RefreshSources</div>", status=200, mimetype='text/html')
         elif session.sample_pending:

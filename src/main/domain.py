@@ -37,12 +37,12 @@ class Feed(dict, SessionMixin):
         if sample is None:
             return None
         else:
-            return sample.get('source', '<div></div>')
+            return sample.get('source', '<html><body><div></div></body></html>')
 
     def setExampleSource(self, source, position):
         self.num_examples += 1
         logging.info(f'setting sample source of length={len(source)} for {self.name}')
-        session['chain_db']['sample_pages'].replace_one({'name': session.name}, {'position': position ,'name': session.name, 'source': source}, upsert=True)
+        session['chain_db']['sample_pages'].replace_one({'name': session.name, 'position': position}, {'position': position ,'name': session.name, 'source': source}, upsert=True)
         self.modified=True
 
     def markDisabled(self):
