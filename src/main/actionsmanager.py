@@ -91,7 +91,7 @@ class ActionsManager(FlaskView):
     def queryActionChain(self, name, field):
         it = self.actionChains.find_one({'name': name}, projection=[field])
         if it is None:
-            return Response(json.dumps({}), status=200, mimetype='application/json')
+            return Response(json.dumps({field: None}), status=200, mimetype='application/json')
         else:
             it.pop('_id')
             return Response(json.dumps(it), mimetype='application/json')

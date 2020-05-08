@@ -10,6 +10,7 @@ RUN python -m pip install pip
 RUN mkdir /data
 RUN mkdir /data/content
 
+# add selenium static js files
 ADD ./requirements.txt /home/requirements.txt
 ADD ./selector/selectorgadget_combined.min.js /data/content/selectorgadget_combined.js
 ADD ./selector/selectorgadget_combined.css /data/content/selectorgadget_combined.css
