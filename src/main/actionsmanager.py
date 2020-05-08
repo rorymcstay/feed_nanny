@@ -67,7 +67,7 @@ class ActionsManager(FlaskView):
         possible_values = {
             'actionType': ActionTypes,
             'returnType': ReturnTypes,
-            'isRepeating': [True, False],
+            'isSingle': [True, False],
             'attr': ['class', 'href', 'src', 'img']
 
         }
