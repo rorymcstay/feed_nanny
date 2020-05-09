@@ -10,6 +10,7 @@ from pymongo.database import Database
 
 from feed.settings import mongo_params
 from feed.actiontypes import ActionTypes, ReturnTypes, get_mandatory_params
+from feed.actionchains import ClickAction, CaptureAction, InputAction, PublishAction, Action
 from feed.logger import getLogger
 
 logging = getLogger(__name__)
@@ -115,8 +116,24 @@ class ActionsManager(FlaskView):
         else:
             logging.warning(f'invalid request to update {actionChain.get("name")}, {json.dumps(actionChain)}')
             return False
+        if len(actionChain.get('actions', [])) == 0:
+            logging.warning(f'{type(self).__name__}::_verifyAction(): No actions provided. params=[{actionChain}]')
+            return False
         if not (actionChain.get('startUrl') and actionChain.get('name')):
             logging.warning(f'invalid request to update {actionChain.get("name")}, {json.dumps(actionChain)}')
             return False
+        for action in actionChain.get('actions'):
+            actionTypes = {
+                "ClickAction": ClickAction,
+                "InputAction": InputAction,
+                "CaptureAction": CaptureAction,
+                "PublishAction": PublishAction
+            }
+            const = actionTypes.get(action.get('actionType'), Action)
+            try:
+                const(position=0, **action)
+            except Exception as ex:
+                logging.warning(f'{type(self).__name__}::_verifyAction(): invalid action for actionType=[{action.get("actionType")}], used constructor=[{const.__name__}], excep=[{type(ex).__name__}] reason=[{ex.args}], params=[{action}]')
+                return False
         return True
 
