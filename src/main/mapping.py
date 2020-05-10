@@ -1,7 +1,7 @@
 import json
 import logging
 
-from flask import request, Response
+from flask import request, Response, session
 from flask_classy import FlaskView, route
 import pymongo
 from feed.settings import mongo_params
