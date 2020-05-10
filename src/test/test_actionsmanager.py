@@ -36,7 +36,7 @@ chain = {
     "name": "DoneDealCars"
 }
 
-class TestActionsManager(MongoTestInterface, TestCase):
+class TestActionsManager(MongoTestInterface):
     def setUp(cls):
         cls.actionsManager = ActionsManager()
         cls.mongo_client['actionChains']['actionChainDefinitions'].insert_one(chain)

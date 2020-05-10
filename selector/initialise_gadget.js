@@ -6,8 +6,9 @@
     // putting the CSS selector into your code editor
     window.sg_prediction = function(prediction) {
       console.log("sending message to parent with prediction: ", prediction);
-      window.parent.postMessage({predicted: prediction});
+      window.parent.postMessage({predicted: prediction}, 'http://localhost:3000');
     }
       SelectorGadget.toggle(); // to turn on SelectorGadget, call this method
                                // call it again to turn off the SelectorGadget
   });
+
