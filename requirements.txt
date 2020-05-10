@@ -8,4 +8,4 @@ pymongo
 checksumdir
 kafka-python
 bs4
-feed_utils==0.3.13
+feed_utils==0.3.34
