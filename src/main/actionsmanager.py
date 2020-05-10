@@ -10,7 +10,7 @@ from pymongo.database import Database
 
 from feed.settings import mongo_params
 from feed.actiontypes import ActionTypes, ReturnTypes, get_mandatory_params
-from feed.actionchains import ClickAction, CaptureAction, InputAction, PublishAction, Action
+from feed.actionchains import ClickAction, CaptureAction, InputAction, PublishAction, Action, ActionTypesMap
 from feed.logger import getLogger
 
 logging = getLogger(__name__)
@@ -78,11 +78,11 @@ class ActionsManager(FlaskView):
     def setActionChain(self):
         actionChain = request.get_json()
         logging.info(f'request to set actionChain for {actionChain.get("name")}, have {len(actionChain.get("actions"))} actions')
-        if self._verifyAction(actionChain):
+        response = Response()
+        res = self._verifyAction(actionChain, response)
+        if res.get('valid'):
             self.actionChains.replace_one({'name': actionChain.get('name')}, actionChain, upsert=True)
-            return Response('ok', status=200)
-        else:
-            return Response('action chain was invalid')
+        return Response(json.dumps(res), mimetype='application/json')
 
     @route('deleteActionChain/<string:name>', methods=['DELETE'])
     def deleteActionChain(self, name):
@@ -101,39 +101,38 @@ class ActionsManager(FlaskView):
         ret = self.actionChains.find_all({}, project=['name'])
         return Response(json.dumps([name for name in ret]), mimetype='application/json')
 
-    def _verifyAction(self, actionChain):
+    def _verifyAction(self, actionChain, response: Response):
         """
         TODO: look into proper json validation libraries
         """
-        chain_mandatory_params = ['', '', '']
-        action_mandatory_params = ['actionType', 'css', '']
+        chain_mandatory_params = ['startUrl', 'name', 'actions', 'isRepeating']
+        # first test costruct all the different Actions
         if isinstance(actionChain.get('actions'), list):
-            for action in actionChain.get('actions'):
-                # check the mandatory parameters
-                if not ( action.get('actionType') and action.get('css')):
-                    logging.warning(f'invalid request to update {actionChain.get("name")}, {json.dumps(actionChain)}')
-                    return False
+            # Test construct each type of action
+            for pos, action in enumerate(actionChain.get('actions')):
+                # TODO remove this into an imported dict
+                const = ActionTypesMap.get(action.get('actionType')) # if not found then we will fail
+                try:
+                    const(position=0, **action)
+                except KeyError as ex:
+                    response = {'valid': False, 'reason': f'Missing mandatory parameters for {const.__name__}', 'keys': [ex.args[0]], 'position': pos}
+                    logging.warning(f'{type(self).__name__}::_verifyAction(): missing default parameters for actionType=[{action.get("actionType")}], used constructor=[{const.__name__}], excep=[{type(ex).__name__}] reason=[{ex.args}], params=[{action}]')
+                    return response
+                except TypeError as ex:
+                    response.json = {f'valid': False, 'reason': 'Unsupported Action', 'actionType': action.get('type'), position: pos}
+                    return response
         else:
+            response = {'valid': False, 'reason': '"actions" should be a list', 'key': 'actions'}
             logging.warning(f'invalid request to update {actionChain.get("name")}, {json.dumps(actionChain)}')
-            return False
+        # makesure we didn't skip through
         if len(actionChain.get('actions', [])) == 0:
             logging.warning(f'{type(self).__name__}::_verifyAction(): No actions provided. params=[{actionChain}]')
-            return False
-        if not (actionChain.get('startUrl') and actionChain.get('name')):
+            response = {'valid': False, 'reason': 'No actions provided'}
+        # next validate the mandatory parameters for the chain
+        if not all(actionChain.get(key) for key in chain_mandatory_params):
             logging.warning(f'invalid request to update {actionChain.get("name")}, {json.dumps(actionChain)}')
-            return False
-        for action in actionChain.get('actions'):
-            actionTypes = {
-                "ClickAction": ClickAction,
-                "InputAction": InputAction,
-                "CaptureAction": CaptureAction,
-                "PublishAction": PublishAction
-            }
-            const = actionTypes.get(action.get('actionType'), Action)
-            try:
-                const(position=0, **action)
-            except Exception as ex:
-                logging.warning(f'{type(self).__name__}::_verifyAction(): invalid action for actionType=[{action.get("actionType")}], used constructor=[{const.__name__}], excep=[{type(ex).__name__}] reason=[{ex.args}], params=[{action}]')
-                return False
-        return True
+            response = {'valid': False, 'reason': 'Missing mandatory params', 'keys': list(filter(lambda key: actionChain.get(key) is None, chain_mandatory_params))}
+            return response
+        response = {'valid': True}
+        return response
 

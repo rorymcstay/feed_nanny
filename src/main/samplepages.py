@@ -82,6 +82,7 @@ class SamplePages(FlaskView):
             logging.info(f'{name} requested but not present in memory')
             return Response(f'feed: {name} not found.', status=404)
         source = request.get_data(as_text=True)
+        # TODO search for cookes and remove
         session.setExampleSource(source, position)
         return Response('ok', status=200)
 

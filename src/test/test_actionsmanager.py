@@ -3,6 +3,8 @@ import logging
 import unittest
 
 from feed.testinterfaces import MongoTestInterface
+from flask import Response
+
 
 
 from src.main.actionsmanager import ActionsManager
@@ -45,8 +47,8 @@ class TestActionsManager(MongoTestInterface):
         cls.mongo_client.drop_database('actionChains')
 
     def test__verifyAction(self):
-        isValid = self.actionsManager._verifyAction(chain)
-        self.assertTrue(isValid)
+        isValid = self.actionsManager._verifyAction(chain, Response())
+        self.assertTrue(isValid.get('valid'))
         chain.pop('actions')
 
     def test_getActionChains(self):
