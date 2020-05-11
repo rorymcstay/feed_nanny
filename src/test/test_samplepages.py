@@ -13,9 +13,13 @@ class TestSamplePages(MongoTestInterface):
 
     def setUp(cls):
         cls.samplePages = SamplePages()
-        self.example_sources = cls.mongo_client['sessions']['sample_pages']
+        cls.example_sources = cls.mongo_client['sessions']['sample_pages']
 
     def test_htmlSourceRemoveCookies(self):
         src = self.example_sources.find_one({'name':'DoneDealCars', 'position': 0}, projection=['source'])
         html_src = HtmlSource(src)
+
+    def test_requestSamplePages(self):
+        # need to mock sessions
+        self.samplePages.requestSamplePages('DoneDealCars')
 

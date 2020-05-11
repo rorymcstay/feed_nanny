@@ -66,15 +66,19 @@ class SamplePages(FlaskView):
             url = r.get('http://{host}:{port}/actionsmanager/getActionChain/{name}'.format(name=name, **nanny_params)).json()
 
         logging.info(f'requesting {url} to be sample')
-        r.put('http://{host}:{port}/schedulemanager/scheduleActionChain/sample-queue/{name}'.format(name=name, **ui_server_params), json={
-            "url": url,
-            "actionName": name,
-            "trigger": 'date',
-            "increment_size": 2,
-            "increment": 'seconds'
+        try:
+            samplePages = r.put('http://{host}:{port}/schedulemanager/scheduleActionChain/sample-queue/{name}'.format(name=name, **ui_server_params), json={
+                "url": url,
+                "actionName": name,
+                "trigger": 'date',
+                "increment_size": 2,
+                "increment": 'seconds'
             })
+        except:
+            logging.warning(f'Could not communicate with ui-server')
+            return Response(json.dumps({'valid': False, 'reason': 'Could not request page to be sampled'}), mimetype='application/json')
         logging.info('added job to collect sample page')
-        return 'ok'
+        return Response(json.dumps(samplePages.json()), mimetype='application/json')
 
     @route('setExampleSource/<string:name>/<int:position>', methods=["POST"])
     def setExampleSource(self, name, position):
