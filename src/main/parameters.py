@@ -17,8 +17,8 @@ class ParameterManager:
 
     """
     client = pymongo.MongoClient(**mongo_params)
-    feed_params: Database = client[os.getenv("PARAMETER_DATABASE", "params")]
-    feed_stats: Database = client[os.getenv("PARAMETER_STATS", "param_stats")]
+    feed_params: Database = client[os.getenv("CHAIN_DB", "actionChains")]
+    feed_stats: Database = client[os.getenv("CHAIN_DB", "actionChains")]
 
     def getFeeds(self):
         return [feed.get("name") for feed in  self.feed_params["leader"].find({})]

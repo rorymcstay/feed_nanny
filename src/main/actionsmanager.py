@@ -38,7 +38,7 @@ baseActionParams = {
 
 class ActionsManager(FlaskView):
     client = MongoClient(**mongo_params)
-    actionsDatabase: Database = client[os.getenv("ACTIONS_DATABASE", "actionChains")]
+    actionsDatabase: Database = client[os.getenv("CHAIN_DB", "actionChains")]
     actionChains: Collection = actionsDatabase['actionChainDefinitions']
 
     def newActionSchema(self):
