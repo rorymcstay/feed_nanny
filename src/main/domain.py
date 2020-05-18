@@ -33,7 +33,7 @@ class Feed(dict, SessionMixin):
 
     def example_sources(self, position):
         # TODO this should be improved further to get that item of the list
-        sample = session[os.getenv('CHAIN_DB', 'actionChains')]['sample_pages'].find_one({'name': session.name, 'position': position})
+        sample = session['chain_db']['sample_pages'].find_one({'name': session.name, 'position': position})
         self.modified=False
         if sample is None:
             return None
@@ -43,7 +43,7 @@ class Feed(dict, SessionMixin):
     def setExampleSource(self, source, position):
         self.num_examples += 1
         logging.info(f'setting sample source of length={len(source)} for {self.name}')
-        session[os.getenv('CHAIN_DB', 'actionChains')]['sample_pages'].replace_one({'name': session.name, 'position': position}, {'position': position ,'name': session.name, 'source': source}, upsert=True)
+        session['chain_db']['sample_pages'].replace_one({'name': session.name, 'position': position}, {'position': position ,'name': session.name, 'source': source}, upsert=True)
         self.modified=True
 
     def markDisabled(self):
