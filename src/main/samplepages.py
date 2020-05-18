@@ -95,7 +95,7 @@ class SamplePages(FlaskView):
             return Response(json.dumps([]), mimetype='application/json')
         actions = r.get('http://{host}:{port}/actionsmanager/queryActionChain/{chain}/actions'.format(chain=name,**nanny_params)).json().get('actions', [])
         status =[]
-        for i in range(len(actions)):
+        for i in range(len(actions if isinstance(actions, list) else [])):
             if i < session.num_examples:
                 status.append({'ready': True})
             else:
