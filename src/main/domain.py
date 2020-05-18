@@ -1,4 +1,5 @@
 from flask.sessions import SessionMixin
+import os
 import time
 from flask import session, g
 import logging
