@@ -27,7 +27,6 @@ app = init_app(Feed)
 logging.info("####### Environment #######")
 
 
-logging.info("database: {}".format(json.dumps(database_parameters, indent=4, sort_keys=True)))
 logging.info("nanny: {}".format(json.dumps(nanny_params, indent=4, sort_keys=True)))
 
 
