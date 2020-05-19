@@ -19,10 +19,7 @@ from datetime import timedelta
 logging.basicConfig(level=os.environ.get("LOGLEVEL", "DEBUG"))
 logging.getLogger("urllib3").setLevel("INFO")
 
-
-
 app = init_app(Feed)
-
 
 logging.info("####### Environment #######")
 

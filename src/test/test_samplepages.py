@@ -15,11 +15,15 @@ class TestSamplePages(MongoTestInterface):
         cls.samplePages = SamplePages()
         cls.example_sources = cls.mongo_client['sessions']['sample_pages']
 
+    @unittest.skip
     def test_htmlSourceRemoveCookies(self):
         src = self.example_sources.find_one({'name':'DoneDealCars', 'position': 0}, projection=['source'])
         html_src = HtmlSource(src)
 
+    @unittest.skip
     def test_requestSamplePages(self):
         # need to mock sessions
         self.samplePages.requestSamplePages('DoneDealCars')
 
+if __name__ == '__main__':
+    unittest.main()
