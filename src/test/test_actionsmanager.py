@@ -57,9 +57,9 @@ class TestActionsManager(TestCase, MongoTestInterface):
         isValid = self.actionsManager._verifyAction(chain, Response())
         self.assertTrue(isValid.get('valid'))
         chain.pop('actions')
+
     def tearDown(cls):
         cls.mongo_client.drop_database('actionChains')
-
 
     def test_getActionChains(self):
         chains = self.actionsManager.getActionChains()
@@ -76,7 +76,6 @@ class TestActionsManager(TestCase, MongoTestInterface):
         donedeal = self.mongo_client['actionChains']['actionChainDefinitions'].find_one({'name': 'DoneDealCars'})
         self.assertIsNone(donedeal)
 
-    # TODO need a way to mock the request object
 
 if __name__ == '__main__':
     unittest.main()
