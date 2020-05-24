@@ -15,11 +15,14 @@ class TestSamplePages(TestCase, MongoTestInterface):
 
     @classmethod
     def setUpClass(cls):
-        cls.app = app
+        print('setting up containers for SamplePages')
+        cls.createMongo()
 
     @classmethod
     def setUp(cls):
+        print('Setting up test classes and app')
         cls.samplePages = SamplePages()
+        cls.app = app
 
     @unittest.skip
     def test_htmlSourceRemoveCookies(self):

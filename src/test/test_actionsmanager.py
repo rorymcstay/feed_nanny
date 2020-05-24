@@ -42,12 +42,16 @@ class TestActionsManager(TestCase, MongoTestInterface):
 
     @classmethod
     def setUp(cls):
+        print('setting up class for ActionManager tests')
         cls.actionsManager = ActionsManager()
         cls.mongo_client['actionChains']['actionChainDefinitions'].replace_one({'name': chain.get('name')}, replacement=chain, upsert=True)
 
+
     @classmethod
     def setUpClass(cls):
+        print('setting up containers for TestActionsManager')
         cls.createMongo()
+        print('Complete setting up containers for TestActionsManager')
 
     def test__verifyAction(self):
         isValid = self.actionsManager._verifyAction(chain, Response())
