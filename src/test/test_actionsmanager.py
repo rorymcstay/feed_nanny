@@ -38,18 +38,24 @@ chain = {
     "name": "DoneDealCars"
 }
 
-class TestActionsManager(MongoTestInterface):
+class TestActionsManager(TestCase, MongoTestInterface):
+
+    @classmethod
     def setUp(cls):
         cls.actionsManager = ActionsManager()
-        cls.mongo_client['actionChains']['actionChainDefinitions'].insert_one(chain)
+        cls.mongo_client['actionChains']['actionChainDefinitions'].replace_one({'name': chain.get('name')}, replacement=chain, upsert=True)
 
-    def tearDown(cls):
-        cls.mongo_client.drop_database('actionChains')
+    @classmethod
+    def setUpClass(cls):
+        cls.createMongo()
 
     def test__verifyAction(self):
         isValid = self.actionsManager._verifyAction(chain, Response())
         self.assertTrue(isValid.get('valid'))
         chain.pop('actions')
+    def tearDown(cls):
+        cls.mongo_client.drop_database('actionChains')
+
 
     def test_getActionChains(self):
         chains = self.actionsManager.getActionChains()
@@ -68,3 +74,5 @@ class TestActionsManager(MongoTestInterface):
 
     # TODO need a way to mock the request object
 
+if __name__ == '__main__':
+    unittest.main()
