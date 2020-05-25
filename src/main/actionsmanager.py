@@ -1,7 +1,7 @@
 import json
 import os
 
-from flask import Response, request
+from flask import Response, request, session
 from flask_classy import FlaskView, route
 
 from pymongo import MongoClient
@@ -40,6 +40,31 @@ class ActionsManager(FlaskView):
     client = MongoClient(**mongo_params)
     actionsDatabase: Database = client[os.getenv("CHAIN_DB", "actionChains")]
     actionChains: Collection = actionsDatabase['actionChainDefinitions']
+
+    @route('reportActionError/<string:actionChainName>', methods=['PUT'])
+    def reportActionError(self, actionChainName):
+        errorReport = request.get_json()
+        logging.info(f'saving action error report {errorReport}')
+        session['chain_db']['actionErrorReports'].replace_one({'actionHash': errorReport.get('actionHash'), 'chainName': actionChainName}, replacement=errorReport, upsert=True)
+        return 'ok'
+
+    @route('findActionErrorReports/<string:actionChainName>/<int:position>')
+    def findActionErrorReports(self, actionChainName, position):
+        actions : Response = self.queryActionChain(actionChainName, 'actions')
+        actions = actions.get_json().get('actions', [])
+        if len(actions) < position:
+            return Response(json.dumps([]), mimetype='application/json')
+        const = ActionTypesMap.get(actions[position].get('actionType')) # if not found then we will fail
+        action = const(**actions[position], position=position)
+        logging.debug(f'Searching for errors with {action.getActionHash()}')
+        reports = session['chain_db']['actionErrorReports'].find(filter={'actionHash': action.getActionHash(), 'chainName': actionChainName})
+        payload = []
+        for i in reports:
+            i.pop('_id')
+            logging.debug(f'Found action error report for hash=[{i.get("actionHash")}], actionChainName=[{actionChainName}]')
+            payload.append(i)
+        logging.debug(f'found {payload} reports for actionChainName=[{actionChainName}]')
+        return Response(json.dumps(payload),mimetype='application/json')
 
     def newActionSchema(self):
         return Response(json.dumps(baseActionParams), mimetype='application/json')
