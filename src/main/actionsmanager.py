@@ -66,6 +66,11 @@ class ActionsManager(FlaskView):
         logging.debug(f'found {payload} reports for actionChainName=[{actionChainName}]')
         return Response(json.dumps(payload),mimetype='application/json')
 
+    @route('clearActionErrorReports/<string:actionChainName>', methods=['DELETE'])
+    def clearActionErrorReports(self, actionChainName):
+        session['chain_db']['actionErrorReports'].delete_many({'chainName': actionChainName})
+        return 'ok'
+
     def newActionSchema(self):
         return Response(json.dumps(baseActionParams), mimetype='application/json')
 
