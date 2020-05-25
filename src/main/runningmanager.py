@@ -59,6 +59,10 @@ class RunningManager(FlaskView):
         RunningManager._get_toRun().put(session.name)
         return 'ok'
 
+    def refreshHistory(self, name):
+        r.delete(f'{"http://{host}:{port}".format(**routing_params)}/routingcontroller/clearHistory/{name}')
+        return 'ok'
+
     def addFeed(self, name):
         if session.name is not None:
             session.run()
