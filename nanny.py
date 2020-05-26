@@ -1,27 +1,13 @@
 import logging
 from logging.config import dictConfig
 import os
-from feed.settings import nanny_params, mongo_params
+from feed.settings import nanny_params, mongo_params, logger_settings_dict
 
 
 
 
 if __name__ == '__main__':
-    dictConfig({
-        'version': 1,
-        'formatters': {'default': {
-            'format': '[%(asctime)s]%(thread)d: %(module)s - %(levelname)s - %(message)s',
-        }},
-        'handlers': {'wsgi': {
-            'class': 'logging.StreamHandler',
-            'stream': 'ext://flask.logging.wsgi_errors_stream',
-            'formatter': 'default'
-        }},
-        'root': {
-            'level': 'INFO',
-            'handlers': ['wsgi']
-        }
-    })
+    dictConfig(logger_settings_dict)
 
     logging.getLogger("urllib3").setLevel("INFO")
 
