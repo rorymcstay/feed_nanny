@@ -27,6 +27,12 @@ class MappingManager(FlaskView):
         session.setNeedsMapping()
         return Response('ok')
 
+    def getMappingNames(self, name):
+        out = []
+        for i in self.mappings.find({}, projection=['name']):
+            out.append(i.get('name'))
+        return Response(json.dumps(out), mimetype='application/json')
+
     def _hasMapping(self, feedName):
         mapping = self.mappings.find_one({'name': name})
 

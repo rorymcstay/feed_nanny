@@ -15,6 +15,7 @@ class Feed(dict, SessionMixin):
         self.last_page = kwargs.get('lastPage', None)
         self.needs_mapping = kwargs.get('needsMapping', False)
         self.pages_processed = kwargs.get('pagesProcessed', 0)
+        self.pages_processed = kwargs.get('userID': None)
         #self.example_sources = kwargs.get('exampleSources', [])
         self.sample_pending = False
         self.num_examples = kwargs.get('numExamples', 0)
@@ -73,6 +74,7 @@ class Feed(dict, SessionMixin):
                     lastRan=self.last_ran,
                     running=self.running,
                     needsMapping=self.needs_mapping,
+                    userID=self.userID,
                     samplePending=self.sample_pending,
                     isDisabled=self.isDisabled,
                     lastPage=self.last_page,
@@ -86,6 +88,7 @@ class Feed(dict, SessionMixin):
                     running=self.running,
                     needsMapping=self.needs_mapping,
                     samplePending=self.sample_pending,
+                    userID=self.userID,
                     isDisabled=self.isDisabled,
                     lastPage=self.last_page,
                     #exampleSources=self.example_sources,

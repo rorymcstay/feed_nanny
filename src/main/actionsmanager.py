@@ -41,6 +41,8 @@ class ActionsManager(FlaskView):
     actionsDatabase: Database = client[os.getenv("CHAIN_DB", "actionChains")]
     actionChains: Collection = actionsDatabase['actionChainDefinitions']
 
+    ###############################
+    # Authorised methods
     @route('reportActionError/<string:actionChainName>', methods=['PUT'])
     def reportActionError(self, actionChainName):
         errorReport = request.get_json()
@@ -71,9 +73,6 @@ class ActionsManager(FlaskView):
         session['chain_db']['actionErrorReports'].delete_many({'chainName': actionChainName})
         return 'ok'
 
-    def newActionSchema(self):
-        return Response(json.dumps(baseActionParams), mimetype='application/json')
-
     def getActionChains(self):
         chains = self.actionChains.find({}, projection=['name'])
         if chains is None:
@@ -86,23 +85,6 @@ class ActionsManager(FlaskView):
             return Response(json.dumps(baseActionParams), mimetype='application/json')
         res.pop('_id')
         return Response(json.dumps(res), mimetype='application/json')
-
-    def getActionTypes(self, name):
-        return Response(json.dumps(ActionTypes), mimetype='application/json')
-
-    def getActionParameters(self, name):
-        params = get_mandatory_params(name)
-        return Response(json.dumps(params), mimetype='application/json')
-
-    def getPossibleValues(self):
-        possible_values = {
-            'actionType': ActionTypes,
-            'returnType': ReturnTypes,
-            'isSingle': [True, False],
-            'attr': ['class', 'href', 'src', 'img']
-
-        }
-        return Response(json.dumps(possible_values), mimetype='application/json')
 
     @route('setActionChain/', methods=['PUT'])
     def setActionChain(self):
@@ -130,6 +112,28 @@ class ActionsManager(FlaskView):
     def listActionChains(self):
         ret = self.actionChains.find_all({}, project=['name'])
         return Response(json.dumps([name for name in ret]), mimetype='application/json')
+    # Authorised methods end
+    ########################
+
+    def newActionSchema(self):
+        return Response(json.dumps(baseActionParams), mimetype='application/json')
+
+    def getActionTypes(self, name):
+        return Response(json.dumps(ActionTypes), mimetype='application/json')
+
+    def getActionParameters(self, name):
+        params = get_mandatory_params(name)
+        return Response(json.dumps(params), mimetype='application/json')
+
+    def getPossibleValues(self):
+        possible_values = {
+            'actionType': ActionTypes,
+            'returnType': ReturnTypes,
+            'isSingle': [True, False],
+            'attr': ['class', 'href', 'src', 'img']
+
+        }
+        return Response(json.dumps(possible_values), mimetype='application/json')
 
     def _verifyAction(self, actionChain, response: Response):
         """
