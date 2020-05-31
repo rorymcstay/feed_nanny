@@ -42,13 +42,12 @@ class RunningManager(FlaskView):
             return Response(json.dumps({'registered': False}), mimetype='application/json',status=200 )
         if session.isDisabled:
             return Response(json.dumps({'registered': False, 'status': session.small_dict()}), mimetype='application/json', status=200)
-        req = r.get(f'{"http://{host}:{port}".format(**routing_params)}/routingcontroller/getLastPage/{name}')
-        try:
-            last_page = req.json()
+        req = session["routing"].get(f'/routingcontroller/getLastPage/{name}', resp=True, error=False)
+        if req:
             logging.info(f'status: {session.name}, last_page={last_page.get("url")}, pages_processed={last_page.get("pagesProcessed")}')
             session.last_page = last_page.get('url')
             session.pages_processed = last_page.get('pagesProcessed')
-        except JSONDecodeError as ex:
+        else:
             logging.warning(f'No history for {session.name}')
             session.last_page = None
             session.pages_processed = 0
@@ -60,7 +59,7 @@ class RunningManager(FlaskView):
         return 'ok'
 
     def refreshHistory(self, name):
-        r.delete(f'{"http://{host}:{port}".format(**routing_params)}/routingcontroller/clearHistory/{name}')
+        session["router"].delete(f'/routingcontroller/clearHistory/{name}')
         return 'ok'
 
     def addFeed(self, name):

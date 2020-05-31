@@ -47,7 +47,7 @@ class ActionsManager(FlaskView):
     def reportActionError(self, actionChainName):
         errorReport = request.get_json()
         logging.info(f'saving action error report {errorReport}')
-        session['chain_db']['actionErrorReports'].replace_one({'actionHash': errorReport.get('actionHash'), 'chainName': actionChainName}, replacement=errorReport, upsert=True)
+        session['chain_db']['actionErrorReports'].replace_one({'actionHash': errorReport.get('actionHash'), 'chainName': actionChainName, 'userID': session.userID}, replacement=errorReport, upsert=True)
         return 'ok'
 
     @route('findActionErrorReports/<string:actionChainName>/<int:position>')
@@ -58,8 +58,8 @@ class ActionsManager(FlaskView):
             return Response(json.dumps([]), mimetype='application/json')
         const = ActionTypesMap.get(actions[position].get('actionType')) # if not found then we will fail
         action = const(**actions[position], position=position)
-        logging.debug(f'Searching for errors with {action.getActionHash()}')
-        reports = session['chain_db']['actionErrorReports'].find(filter={'actionHash': action.getActionHash(), 'chainName': actionChainName})
+        logging.debug(f'Searching for errors with {action.getActionHash()}, userID=[{session.userID}]')
+        reports = session['chain_db']['actionErrorReports'].find(filter={'actionHash': action.getActionHash(), 'chainName': actionChainName, userID: session.userID})
         payload = []
         for i in reports:
             i.pop('_id')
@@ -70,7 +70,7 @@ class ActionsManager(FlaskView):
 
     @route('clearActionErrorReports/<string:actionChainName>', methods=['DELETE'])
     def clearActionErrorReports(self, actionChainName):
-        session['chain_db']['actionErrorReports'].delete_many({'chainName': actionChainName})
+        session['chain_db']['actionErrorReports'].delete_many({'chainName': actionChainName, 'userID': session.userID})
         return 'ok'
 
     def getActionChains(self):
@@ -79,8 +79,14 @@ class ActionsManager(FlaskView):
             chains = [{'name': 'NewAction'}]
         return Response(json.dumps([chain.get('name') for chain in chains]), mimetype='application/json')
 
+    def getUserActionChains(self):
+        chains = self.actionChains.find({'userID': session.userID}, projection=['name'])
+        if chains is None:
+            chains = [{'name': 'NewAction'}]
+        return Response(json.dumps([chain.get('name') for chain in chains]), mimetype='application/json')
+
     def getActionChain(self, name):
-        res = self.actionChains.find_one({'name': name})
+        res = self.actionChains.find_one({'name': name, 'userID': session.userID})
         if res is None:
             return Response(json.dumps(baseActionParams), mimetype='application/json')
         res.pop('_id')
@@ -93,25 +99,22 @@ class ActionsManager(FlaskView):
         response = Response()
         res = self._verifyAction(actionChain, response)
         if res.get('valid'):
-            self.actionChains.replace_one({'name': actionChain.get('name')}, actionChain, upsert=True)
+            self.actionChains.replace_one({'name': actionChain.get('name'), 'userID': session.userID}, actionChain, upsert=True)
         return Response(json.dumps(res), mimetype='application/json')
 
     @route('deleteActionChain/<string:name>', methods=['DELETE'])
     def deleteActionChain(self, name):
-        self.actionChains.delete_one({'name': name})
+        self.actionChains.delete_one({'name': name, 'userID': session.userID})
         return 'ok'
 
     def queryActionChain(self, name, field):
-        it = self.actionChains.find_one({'name': name}, projection=[field])
+        it = self.actionChains.find_one({'name': name, 'userID': session.userID}, projection=[field])
         if it is None:
             return Response(json.dumps({field: None}), status=200, mimetype='application/json')
         else:
             it.pop('_id')
             return Response(json.dumps(it), mimetype='application/json')
 
-    def listActionChains(self):
-        ret = self.actionChains.find_all({}, project=['name'])
-        return Response(json.dumps([name for name in ret]), mimetype='application/json')
     # Authorised methods end
     ########################
 
