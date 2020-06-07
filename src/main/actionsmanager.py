@@ -54,12 +54,14 @@ class ActionsManager(FlaskView):
     def findActionErrorReports(self, actionChainName, position):
         actions : Response = self.queryActionChain(actionChainName, 'actions')
         actions = actions.get_json().get('actions', [])
-        if len(actions) < position:
+        if actions is None:
+            actions = []
+        if len(actions) <= position:
             return Response(json.dumps([]), mimetype='application/json')
         const = ActionTypesMap.get(actions[position].get('actionType')) # if not found then we will fail
         action = const(**actions[position], position=position)
         logging.debug(f'Searching for errors with {action.getActionHash()}, userID=[{session.userID}]')
-        reports = session['chain_db']['actionErrorReports'].find(filter={'actionHash': action.getActionHash(), 'chainName': actionChainName, userID: session.userID})
+        reports = session['chain_db']['actionErrorReports'].find(filter={'actionHash': action.getActionHash(), 'chainName': actionChainName, 'userID': session.userID})
         payload = []
         for i in reports:
             i.pop('_id')
@@ -96,9 +98,9 @@ class ActionsManager(FlaskView):
     def setActionChain(self):
         actionChain = request.get_json()
         logging.info(f'request to set actionChain for {actionChain.get("name")}, have {len(actionChain.get("actions"))} actions')
-        response = Response()
-        res = self._verifyAction(actionChain, response)
+        res = self._verifyAction(actionChain)
         if res.get('valid'):
+            actionChain.update(userID=session.userID)
             self.actionChains.replace_one({'name': actionChain.get('name'), 'userID': session.userID}, actionChain, upsert=True)
         return Response(json.dumps(res), mimetype='application/json')
 
@@ -110,7 +112,7 @@ class ActionsManager(FlaskView):
     def queryActionChain(self, name, field):
         it = self.actionChains.find_one({'name': name, 'userID': session.userID}, projection=[field])
         if it is None:
-            return Response(json.dumps({field: None}), status=200, mimetype='application/json')
+            return Response(json.dumps({}), status=200, mimetype='application/json')
         else:
             it.pop('_id')
             return Response(json.dumps(it), mimetype='application/json')
@@ -138,7 +140,7 @@ class ActionsManager(FlaskView):
         }
         return Response(json.dumps(possible_values), mimetype='application/json')
 
-    def _verifyAction(self, actionChain, response: Response):
+    def _verifyAction(self, actionChain):
         """
         TODO: look into proper json validation libraries
         """
@@ -156,7 +158,7 @@ class ActionsManager(FlaskView):
                     logging.warning(f'{type(self).__name__}::_verifyAction(): missing default parameters for actionType=[{action.get("actionType")}], used constructor=[{const.__name__}], excep=[{type(ex).__name__}] reason=[{ex.args}], params=[{action}]')
                     return response
                 except TypeError as ex:
-                    response.json = {f'valid': False, 'reason': 'Unsupported Action', 'actionType': action.get('type'), position: pos}
+                    response = {f'valid': False, 'reason': 'Unsupported Action', 'actionType': action.get('type'), position: pos}
                     return response
         else:
             response = {'valid': False, 'reason': '"actions" should be a list', 'key': 'actions'}

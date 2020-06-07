@@ -7,7 +7,15 @@ from feed.settings import nanny_params, mongo_params, logger_settings_dict
 
 
 if __name__ == '__main__':
-    dictConfig(logger_settings_dict)
+    dictConfig(logger_settings_dict('root'))
+    logging.getLogger('conn').setLevel('WARNING')
+    logging.getLogger('urllib').setLevel('WARNING')
+    logging.getLogger('parser').setLevel('WARNING')
+    logging.getLogger('metrics').setLevel('WARNING')
+    logging.getLogger('connectionpool').setLevel('WARNING')
+    logging.getLogger('config').setLevel('WARNING')
+
+
 
     logging.getLogger("urllib3").setLevel("INFO")
 

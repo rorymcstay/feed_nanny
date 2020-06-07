@@ -42,7 +42,7 @@ class RunningManager(FlaskView):
             return Response(json.dumps({'registered': False}), mimetype='application/json',status=200 )
         if session.isDisabled:
             return Response(json.dumps({'registered': False, 'status': session.small_dict()}), mimetype='application/json', status=200)
-        req = session["routing"].get(f'/routingcontroller/getLastPage/{name}', resp=True, error=False)
+        req = session["router"].get(f'/routingcontroller/getLastPage/{name}', resp=True, error=False)
         if req:
             logging.info(f'status: {session.name}, last_page={last_page.get("url")}, pages_processed={last_page.get("pagesProcessed")}')
             session.last_page = last_page.get('url')
