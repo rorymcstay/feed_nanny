@@ -8,5 +8,5 @@ pymongo
 checksumdir
 kafka-python
 bs4
-feed-utils==0.6.4
+feed-utils==0.7.0
 pyjwt
