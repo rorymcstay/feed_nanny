@@ -15,7 +15,7 @@ class Feed(dict, SessionMixin):
         self.last_page = kwargs.get('lastPage', None)
         self.needs_mapping = kwargs.get('needsMapping', False)
         self.pages_processed = kwargs.get('pagesProcessed', 0)
-        self.userID = kwargs.get('userID', None)
+        self.userID = str(kwargs.get('userID', None))
         #self.example_sources = kwargs.get('exampleSources', [])
         self.sample_pending = False
         self.num_examples = kwargs.get('numExamples', 0)
@@ -32,19 +32,11 @@ class Feed(dict, SessionMixin):
         self.needs_mapping = True
         self.modified = True
 
-    def example_sources(self, position):
-        # TODO this should be improved further to get that item of the list
-        sample = session['chain_db']['sample_pages'].find_one({'name': session.name, 'position': position})
-        self.modified=False
-        if sample is None:
-            return None
-        else:
-            return sample.get('source', '<html><body><div></div></body></html>')
 
     def setExampleSource(self, source, position):
         self.num_examples += 1
         logging.info(f'setting sample source of length={len(source)} for {self.name}')
-        session['chain_db']['sample_pages'].replace_one({'name': session.name, 'position': position}, {'position': position ,'name': session.name, 'source': source}, upsert=True)
+        session['chain_db']['sample_pages'].replace_one({'name': session.name, 'position': position, 'userID': session.userID}, {'position': position ,'name': session.name, 'source': source, 'userID': session.userID}, upsert=True)
         self.modified=True
 
     def markDisabled(self):

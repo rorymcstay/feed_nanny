@@ -88,8 +88,10 @@ class ActionsManager(FlaskView):
         return Response(json.dumps([chain.get('name') for chain in chains]), mimetype='application/json')
 
     def getActionChain(self, name):
+        logging.debug(f'Getting actionChain, name=[{name}], userID=[{session.userID}]')
         res = self.actionChains.find_one({'name': name, 'userID': session.userID})
         if res is None:
+            logging.info(f'Could not find action chain for chain=[{name}], userID=[{session.userID}]')
             return Response(json.dumps(baseActionParams), mimetype='application/json')
         res.pop('_id')
         return Response(json.dumps(res), mimetype='application/json')

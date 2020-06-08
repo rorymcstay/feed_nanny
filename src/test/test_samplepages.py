@@ -8,7 +8,7 @@ import os
 from pymongo import MongoClient
 from feed.settings import mongo_params
 
-from src.main.samplepages import SamplePages, HtmlSource
+from src.main.samplepages import SamplePages
 from src.main.app import app
 
 class TestSamplePages(TestCase, MongoTestInterface):
@@ -28,13 +28,8 @@ class TestSamplePages(TestCase, MongoTestInterface):
     def test_htmlSourceRemoveCookies(self):
         with self.app.test_request_context(data='<div>Hello world</div>'):
             src = self.example_sources.find_one({'name':'DoneDealCars', 'position': 0}, projection=['source'])
-            html_src = HtmlSource(src)
+            ##html_src = HtmlSource(src)
 
-    @unittest.skip
-    def test_requestSamplePages(self):
-        # need to mock sessions
-        with self.app.test_request_context():
-            self.samplePages.requestSamplePages('DoneDealCars')
 
 if __name__ == '__main__':
     unittest.main()

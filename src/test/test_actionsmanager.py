@@ -10,6 +10,7 @@ from flask import Response
 from src.main.actionsmanager import ActionsManager
 
 crawling = logging.getLogger('feed.actionchains')
+logging.getLogger().setLevel(logging.DEBUG)
 
 
 chain = {
@@ -35,6 +36,7 @@ chain = {
             "isSingle": True
         }
     ],
+    'userID': '1',
     "name": "DoneDealCars"
 }
 
@@ -45,7 +47,8 @@ class TestActionsManager(TestCase, MongoTestInterface):
         print('setting up class for ActionManager tests')
         cls.actionsManager = ActionsManager()
         cls.mongo_client['actionChains']['actionChainDefinitions'].replace_one({'name': chain.get('name')}, replacement=chain, upsert=True)
-
+        from src.main.app import app
+        cls.app = app
 
     @classmethod
     def setUpClass(cls):
@@ -54,7 +57,7 @@ class TestActionsManager(TestCase, MongoTestInterface):
         print('Complete setting up containers for TestActionsManager')
 
     def test__verifyAction(self):
-        isValid = self.actionsManager._verifyAction(chain, Response())
+        isValid = self.actionsManager._verifyAction(chain)
         self.assertTrue(isValid.get('valid'))
         chain.pop('actions')
 
@@ -62,14 +65,16 @@ class TestActionsManager(TestCase, MongoTestInterface):
         cls.mongo_client.drop_database('actionChains')
 
     def test_getActionChains(self):
-        chains = self.actionsManager.getActionChains()
-        self.assertEqual(chains.json, ['DoneDealCars'])
+        with self.app.test_request_context(headers={'userID': 1}):
+            chains = self.actionsManager.getActionChains()
+            self.assertEqual(chains.json, ['DoneDealCars'])
 
     def test_getActionChain(self):
-        chainReq = self.actionsManager.getActionChain('DoneDealCars')
-        chainReq.json.pop('_id', None)
-        chain.pop('_id', None)
-        self.assertDictEqual(chainReq.json, chain)
+        with self.app.test_request_context(headers={'userID': 1}):
+            chainReq = self.actionsManager.getActionChain('DoneDealCars')
+            chainReq.json.pop('_id', None)
+            chain.pop('_id', None)
+            self.assertDictEqual(chainReq.json, chain)
 
     def deleteAction(self):
         self.actionsManager.deleteActionChain('DoneDealCars')

@@ -44,9 +44,9 @@ class RunningManager(FlaskView):
             return Response(json.dumps({'registered': False, 'status': session.small_dict()}), mimetype='application/json', status=200)
         req = session["router"].get(f'/routingcontroller/getLastPage/{name}', resp=True, error=False)
         if req:
-            logging.info(f'status: {session.name}, last_page={last_page.get("url")}, pages_processed={last_page.get("pagesProcessed")}')
-            session.last_page = last_page.get('url')
-            session.pages_processed = last_page.get('pagesProcessed')
+            session.last_page = req.get('url')
+            logging.info(f'status: {session.name}, last_page={session.last_page}, pages_processed={req.get("pagesProcessed")}')
+            session.pages_processed = req.get('pagesProcessed')
         else:
             logging.warning(f'No history for {session.name}')
             session.last_page = None
