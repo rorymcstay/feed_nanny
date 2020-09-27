@@ -10,3 +10,4 @@ kafka-python
 bs4
 feed-utils==0.7.5
 pyjwt
+selenium
