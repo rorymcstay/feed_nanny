@@ -10,7 +10,7 @@ from pymongo.database import Database
 
 from feed.settings import mongo_params
 from feed.actiontypes import ActionTypes, ReturnTypes, get_mandatory_params
-from feed.actionchains import ClickAction, CaptureAction, InputAction, PublishAction, Action, ActionTypesMap
+from feed.actionchains import ClickAction, CaptureAction, InputAction, PublishAction, Action
 from feed.logger import getLogger
 
 logging = getLogger(__name__)
@@ -40,6 +40,7 @@ class ActionsManager(FlaskView):
     client = MongoClient(**mongo_params)
     actionsDatabase: Database = client[os.getenv("CHAIN_DB", "actionChains")]
     actionChains: Collection = actionsDatabase['actionChainDefinitions']
+    actionFunctions: Collection = actionsDatabase['actionFunctions']
 
     ###############################
     # Authorised methods
@@ -58,7 +59,7 @@ class ActionsManager(FlaskView):
             actions = []
         if len(actions) <= position:
             return Response(json.dumps([]), mimetype='application/json')
-        const = ActionTypesMap.get(actions[position].get('actionType')) # if not found then we will fail
+        const = ActionTypes.get(actions[position].get('actionType')) # if not found then we will fail
         action = const(**actions[position], position=position)
         logging.debug(f'Searching for errors with {action.getActionHash()}, userID=[{session.userID}]')
         reports = session['chain_db']['actionErrorReports'].find(filter={'actionHash': action.getActionHash(), 'chainName': actionChainName, 'userID': session.userID})
@@ -119,6 +120,29 @@ class ActionsManager(FlaskView):
             it.pop('_id')
             return Response(json.dumps(it), mimetype='application/json')
 
+    def getActionFunction(self, name):
+        res = actionFunctions.find_one({'name': name, 'userID': session.userID})
+        if res is None:
+            logging.info(f'Failed to locate actionFunction={name} actionFunction for user={session.userID}')
+            return Response(json.dumps({'reason', 'not_found'}), mimetype='application/json', status=404)
+        res.pop('_id')
+        return Response(json.dumps(res), mimetype='application/json')
+
+    @route('setActionFunction/', methods=['PUT'])
+    def setActionFunction(self, name):
+        actionFunction = request.get_json()
+        logging.info(f'reques to set action')
+        res = self._verifyAction(actionFunction)
+        if res.get('valid'):
+            actionFunctions.update(userID=session.userID)
+            self.actionChains.replace_one({'name': actionFunction.get('name'), 'userID': session.userID}, actionFunction, upsert=True)
+        return Response(json.dumps(res), mimetype='application/json')
+
+    @route('deleteActionFunction/<string:name>', methods=['DELETE'])
+    def deleteActionFunction(self, name):
+        self.actionFunctions.delete_one({'name': name, 'userID': session.userID})
+        return 'ok'
+
     # Authorised methods end
     ########################
 
@@ -134,7 +158,7 @@ class ActionsManager(FlaskView):
 
     def getPossibleValues(self):
         possible_values = {
-            'actionType': ActionTypes,
+            'actionType': list(ActionTypes.keys()),
             'returnType': ReturnTypes,
             'isSingle': [True, False],
             'attr': ['class', 'href', 'src', 'img']
@@ -152,7 +176,7 @@ class ActionsManager(FlaskView):
             # Test construct each type of action
             for pos, action in enumerate(actionChain.get('actions')):
                 # TODO remove this into an imported dict
-                const = ActionTypesMap.get(action.get('actionType')) # if not found then we will fail
+                const = ActionTypes.get(action.get('actionType')) # if not found then we will fail
                 try:
                     const(position=0, **action)
                 except KeyError as ex:
